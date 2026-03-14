@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Go URL Shortener</title>
+    <style>
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            background-color: #030811;
+        }
+
+        #particles-js {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            background: radial-gradient(circle at center, #0a192f 0%, #02060b 100%);
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(1px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(249, 242, 242, 0.2);
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 18px 32px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 700px;
+            width: 90%;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+            color: #fff;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        p.subtitle {
+            color: #d1d8e0;
+            margin-bottom: 2rem;
+        }
+
+        input[type="url"] {
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        input[type="url"]::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        input[type="url"]:focus {
+            outline: none;
+            border-color: #00ccff;
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 15px rgba(0, 204, 255, 0.3);
+        }
+
+        button {
+            background: linear-gradient(90deg, #0052d4, #00f0ff);
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 240, 255, 0.4);
+        }
+
+        button:disabled {
+            background: #7f8c8d;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #result {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(0, 204, 255, 0.1);
+            border: 1px solid rgba(0, 204, 255, 0.3);
+            border-radius: 8px;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #result p {
+            margin: 0 0 10px 0;
+            color: #fff;
+            font-weight: normal;
+        }
+
+        #result a {
+            color: #00ccff;
+            font-weight: bold;
+            font-size: 1.3rem;
+            text-decoration: none;
+            word-break: break-all;
+            text-shadow: 0 0 10px rgba(0, 204, 255, 0.3);
+        }
+
+        #result a:hover {
+            text-decoration: underline;
+            color: #fff;
+        }
+
+        #reset-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            margin-top: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: none;
+        }
+
+        #reset-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.1);
+        }
+
+        .error {
+            color: #ff4757;
+            margin-top: 1rem;
+            font-size: 0.95rem;
+            display: none;
+            background: rgba(255, 71, 87, 0.1);
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 71, 87, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="particles-js"></div>
+
+    <div class="container">
+        <h1>Simple Go URL Shortener</h1>
+        <p class="subtitle">Enter a long link below to shorten it</p>
+
+        <!-- The form sends data to the JS fetch request below -->
+        <form id="shortener-form">
+            <input type="url" id="long-url" name="url" placeholder="https://example.com/very/long/url" required>
+            <button type="submit">Shorten URL</button>
+        </form>
+
+        <!-- Used to display errors -->
+        <div id="error-message" class="error"></div>
+
+        <!-- Used to display the newly created short link -->
+        <div id="result">
+            <p>Success! Your short URL:</p>
+            <a id="short-url-link" href="#" target="_blank"></a>
+            <button type="button" id="reset-btn">Shorten Another</button>
+        </div>
+    </div>
+
+    <script>
+        // Intercept the form submission
+        document.getElementById('shortener-form').addEventListener('submit', async function (e) {
+            // Prevent the default browser form submission (which reloads the page)
+            e.preventDefault();
+
+            // Grab elements
+            const longUrl = document.getElementById('long-url').value;
+            const resultDiv = document.getElementById('result');
+            const shortUrlLink = document.getElementById('short-url-link');
+            const errorDiv = document.getElementById('error-message');
+            const submitButton = document.querySelector('button');
+
+            // Reset UI states before making the request
+            resultDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+            submitButton.disabled = true;
+            submitButton.textContent = 'Shortening...';
+
+            try {
+                // Prepare the form data to send
+                const formData = new URLSearchParams();
+                formData.append('url', longUrl);
+
+                // Send a POST request to our Go backend
+                const response = await fetch('/shorten', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: formData
+                });
+
+                // Handle errors from the server (e.g., status 400 or 500)
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || 'Failed to shorten URL. Server returned an error.');
+                }
+
+                // Parse the JSON response body
+                const data = await response.json();
+
+                // Show the result block with the newly created short URL
+                shortUrlLink.href = data.shortUrl;
+                shortUrlLink.textContent = data.shortUrl;
+                resultDiv.style.display = 'block';
+
+                // We intentionally leave the original URL in the input box so the user can still see it.
+
+            } catch (error) {
+                // Show the error message element
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+            } finally {
+                // Re-enable the submit button regardless of success or failure
+                submitButton.disabled = false;
+                submitButton.textContent = 'Shorten URL';
+            }
+        });
+
+        // Reset button logic to allow starting over easily
+        document.getElementById('reset-btn').addEventListener('click', function () {
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('error-message').style.display = 'none';
+            const longUrlInput = document.getElementById('long-url');
+            longUrlInput.value = '';
+            longUrlInput.focus();
+        });
+    </script>
+
+    <!-- Particles.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <script>
+        particlesJS("particles-js", {
+            "particles": {
+                "number": { "value": 110, "density": { "enable": true, "value_area": 800 } },
+                "color": { "value": "#00f0ff" },
+                "shape": { "type": "circle" },
+                "opacity": { "value": 0.6, "random": true, "anim": { "enable": true, "speed": 1, "opacity_min": 0.1, "sync": false } },
+                "size": { "value": 2.5, "random": true, "anim": { "enable": true, "speed": 2, "size_min": 0.1, "sync": false } },
+                "line_linked": { "enable": true, "distance": 140, "color": "#00dbf0", "opacity": 0.5, "width": 1 },
+                "move": { "enable": true, "speed": 1.2, "direction": "none", "random": false, "straight": false, "out_mode": "out", "bounce": false }
+            },
+            "interactivity": {
+                "detect_on": "canvas",
+                "events": {
+                    "onhover": { "enable": true, "mode": "grab" },
+                    "onclick": { "enable": true, "mode": "push" },
+                    "resize": true
+                },
+                "modes": {
+                    "grab": { "distance": 160, "line_linked": { "opacity": 0.8 } },
+                    "push": { "particles_nb": 3 }
+                }
+            },
+            "retina_detect": true
+        });
+    </script>
+
+</body>
+
+</html>
