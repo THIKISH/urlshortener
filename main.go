@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"sync"
 )
@@ -122,12 +121,8 @@ func main() {
 		urlStore[code] = longURL
 		storeMutex.Unlock() // Unlock after writing
 
-		// Create the full short URL using the request host so it works when deployed
-		scheme := "http"
-		if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
-			scheme = "https"
-		}
-		shortURL := fmt.Sprintf("%s://%s/%s", scheme, r.Host, code)
+		// Create the full short URL
+		shortURL := fmt.Sprintf("http://localhost:8080/%s", code)
 
 		// Return the short URL to the frontend as a JSON response
 		w.Header().Set("Content-Type", "application/json")
@@ -136,18 +131,12 @@ func main() {
 		})
 	})
 
-	// Determine port from environment variable or default to 8080
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-
 	// Start the server
-	fmt.Printf("Server is running on port %s\n", port)
+	fmt.Println("Server is running on http://localhost:8080")
 	fmt.Println("Press Ctrl+C to stop")
 	
-	// ListenAndServe blocks indefinitely and listens for incoming requests
-	err := http.ListenAndServe(":"+port, nil)
+	// ListenAndServe blocks indefinitely and listens for incoming requests on port 8080
+	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Fatal("Server failed to start:", err)
 	}
