@@ -7,17 +7,32 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 )
 
-// In-memory store for our URLs.
-// A map is used to store the relationship between the short code and the long URL.
-// We use a RWMutex to ensure that map operations are safe when multiple users access the app concurrently.
-var (
-	urlStore   = make(map[string]string)
-	storeMutex sync.RWMutex
-)
+const storageFile = "urls.json"
+
+// We use a RWMutex to ensure that file operations are safe when multiple users access the app concurrently.
+var storeMutex sync.RWMutex
+
+func loadURLs() map[string]string {
+	store := make(map[string]string)
+	data, err := os.ReadFile(storageFile)
+	if err == nil {
+		json.Unmarshal(data, &store)
+	}
+	return store
+}
+
+func saveURLs(store map[string]string) error {
+	data, err := json.MarshalIndent(store, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(storageFile, data, 0644)
+}
 
 // generateShortCode creates a random 6-character string to be used as the short URL code.
 func generateShortCode() string {
@@ -65,9 +80,10 @@ func main() {
 		// If the path is not "/", we treat it as a short code (e.g., /abc123)
 		code := strings.TrimPrefix(r.URL.Path, "/")
 		
-		// Use RLock (Read Lock) because we are only reading from the map
+		// Use RLock (Read Lock) because we are reading from the file
 		storeMutex.RLock()
-		originalURL, exists := urlStore[code]
+		store := loadURLs()
+		originalURL, exists := store[code]
 		storeMutex.RUnlock()
 
 		if !exists {
@@ -105,20 +121,22 @@ func main() {
 			return
 		}
 
-		// Lock the map for writing to safely add the new URL
+		// Lock for writing to safely add the new URL to the file
 		storeMutex.Lock() 
+		store := loadURLs()
 		code := generateShortCode()
 		
 		// Handle potential map collision: if code somehow already exists, generate a new one
 		for {
-			if _, exists := urlStore[code]; !exists {
+			if _, exists := store[code]; !exists {
 				break
 			}
 			code = generateShortCode()
 		}
 		
 		// Save the mapping
-		urlStore[code] = longURL
+		store[code] = longURL
+		saveURLs(store)
 		storeMutex.Unlock() // Unlock after writing
 
 		// Create the full short URL
