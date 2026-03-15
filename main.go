@@ -122,7 +122,8 @@ func main() {
 		storeMutex.Unlock() // Unlock after writing
 
 		// Create the full short URL
-		shortURL := fmt.Sprintf("http://localhost:8080/%s", code)
+		host := r.Host
+		shortURL := "https://" + host + "/" + code
 
 		// Return the short URL to the frontend as a JSON response
 		w.Header().Set("Content-Type", "application/json")
